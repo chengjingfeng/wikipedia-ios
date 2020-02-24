@@ -17,13 +17,13 @@ public class ImageCacheHeaderProvider: CacheHeaderProviding {
             return header
         }
         
-        header[Session.Header.persistentCacheItemKey] = itemKey
+        header[Header.persistentCacheItemKey] = itemKey
         
         if let variant = cacheKeyGenerator.variantForURL(url) {
-            header[Session.Header.persistentCacheItemVariant] = variant
+            header[Header.persistentCacheItemVariant] = variant
         }
         
-        header[Session.Header.persistentCacheItemType] = Session.Header.ItemType.image.rawValue
+        header[Header.persistentCacheItemType] = Header.ItemType.image.rawValue
         
         return header
     }

@@ -105,13 +105,13 @@ private extension ImageCacheDBWriter {
                 dispatchGroup.enter()
                 
                 guard let url = urlRequest.url,
-                    let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+                    let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                         errorRequests.append(urlRequest)
                         dispatchGroup.leave()
                         continue
                 }
                 
-                let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+                let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
                     
                 guard let group = CacheDBWriterHelper.fetchOrCreateCacheGroup(with: groupKey, in: context) else {
                     errorRequests.append(urlRequest)

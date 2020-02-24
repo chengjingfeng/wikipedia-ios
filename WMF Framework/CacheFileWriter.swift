@@ -38,12 +38,12 @@ final class CacheFileWriter: CacheTaskTracking {
     func add(groupKey: String, urlRequest: URLRequest, completion: @escaping (CacheFileWriterResult) -> Void) {
         
         guard let url = urlRequest.url,
-            let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+            let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
             completion(.failure(CacheFileWriterError.missingHeaderItemKey))
             return
         }
         
-        let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+        let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
         let fileName = cacheKeyGenerator.uniqueFileNameForItemKey(itemKey, variant: variant)
         let headerFileName = cacheKeyGenerator.uniqueHeaderFileNameForItemKey(itemKey, variant: variant)
         
@@ -172,12 +172,12 @@ extension CacheFileWriter {
     
     func migrateCachedContent(content: String, urlRequest: URLRequest, mimeType: String, success: @escaping () -> Void, failure: @escaping (Error) -> Void) {
         
-        guard let itemKey =  urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+        guard let itemKey =  urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                 failure(CacheFileWriterError.missingHeaderItemKey)
                 return
         }
         
-        let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+        let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
         let fileName = cacheKeyGenerator.uniqueFileNameForItemKey(itemKey, variant: variant)
 
         CacheFileWriterHelper.saveContent(content, toNewFileName: fileName, mimeType: mimeType) { (result) in

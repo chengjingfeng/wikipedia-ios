@@ -58,12 +58,12 @@ extension CacheDBWriting {
             return
         }
         
-        guard let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+        guard let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                 completion(.failure(CacheDBWritingMarkDownloadedError.missingExpectedItemsOutOfRequestHeader))
                 return
         }
         
-        let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+        let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
     
         context.perform {
             guard let cacheItem = CacheDBWriterHelper.cacheItem(with: itemKey, variant: variant, in: context) else {

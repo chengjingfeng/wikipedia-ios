@@ -36,7 +36,7 @@ final class CacheProviderHelper {
         return nil
     }
     
-    static func fallbackCacheResponse(url: URL, itemKey: String, variant: String?, itemType: Session.Header.ItemType, cacheKeyGenerator: CacheKeyGenerating.Type, moc: NSManagedObjectContext) -> CachedURLResponse? {
+    static func fallbackCacheResponse(url: URL, itemKey: String, variant: String?, itemType: Header.ItemType, cacheKeyGenerator: CacheKeyGenerating.Type, moc: NSManagedObjectContext) -> CachedURLResponse? {
         
         //lookup fallback itemKey/variant in DB (language fallback logic for article item type, size fallback logic for image item type)
         

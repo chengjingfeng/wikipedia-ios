@@ -156,11 +156,11 @@ public class CacheController {
                 for urlRequest in urlRequests {
                     
                     guard let url = urlRequest.url,
-                        let itemKey =  urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+                        let itemKey =  urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                             continue
                     }
                     
-                    let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+                    let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
                     let uniqueKey = cacheKeyGenerator.uniqueFileNameForItemKey(itemKey, variant: variant)
                     
                     group.enter()

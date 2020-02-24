@@ -20,10 +20,10 @@ public class ArticleCacheHeaderProvider: CacheHeaderProviding {
         
         let variant = cacheKeyGenerator.variantForURL(url)
         
-        header[Session.Header.persistentCacheItemKey] = itemKey
+        header[Header.persistentCacheItemKey] = itemKey
         
         if let variant = variant {
-            header[Session.Header.persistentCacheItemVariant] = variant
+            header[Header.persistentCacheItemVariant] = variant
         }
         
         //pull response header from cache
@@ -45,7 +45,7 @@ public class ArticleCacheHeaderProvider: CacheHeaderProviding {
                 if let keyString = key as? String,
                     keyString == HTTPURLResponse.etagHeaderKey {
                     header[HTTPURLResponse.ifNoneMatchHeaderKey] = value as? String
-                    header[Session.Header.persistentCacheETag] = value as? String //fallback bucket, .ifNoneMatchHeaderKey seems to get reassigned through SchemeHandler
+                    header[Header.persistentCacheETag] = value as? String //fallback bucket, .ifNoneMatchHeaderKey seems to get reassigned through SchemeHandler
                 }
                 //tonitodo: might need to restore some of this later for variant corruption, but commenting for now. this caused urlSession errors in one of the resources requests.
 //                } else if let keyString = key as? String,
@@ -55,7 +55,7 @@ public class ArticleCacheHeaderProvider: CacheHeaderProviding {
             }
         }
         
-        header[Session.Header.persistentCacheItemType] = Session.Header.ItemType.article.rawValue
+        header[Header.persistentCacheItemType] = Header.ItemType.article.rawValue
         
         return header
         

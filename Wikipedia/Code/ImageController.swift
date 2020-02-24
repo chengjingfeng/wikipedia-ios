@@ -25,7 +25,7 @@ open class TypedImageData: NSObject {
     }
 }
 
-fileprivate extension Error {
+private extension Error {
     var isCancellationError: Bool {
         get {
             let potentialCancellationError = self as NSError
@@ -80,16 +80,16 @@ open class ImageController : NSObject {
     }
     
     
-    fileprivate let session: URLSession
-    fileprivate let cache: URLCache
-    fileprivate let permanentStorageDirectory: URL
-    fileprivate let managedObjectContext: NSManagedObjectContext
-    fileprivate let persistentStoreCoordinator: NSPersistentStoreCoordinator
-    fileprivate let fileManager: FileManager
-    fileprivate let memoryCache: NSCache<NSString, Image>
-    
-    fileprivate var permanentCacheCompletionManager = ImageControllerCompletionManager<ImageControllerPermanentCacheCompletion>()
-    fileprivate var dataCompletionManager = ImageControllerCompletionManager<ImageControllerDataCompletion>()
+    private let session: URLSession
+    private let cache: URLCache
+    private let permanentStorageDirectory: URL
+    private let managedObjectContext: NSManagedObjectContext
+    private let persistentStoreCoordinator: NSPersistentStoreCoordinator
+    private let fileManager: FileManager
+    private let memoryCache: NSCache<NSString, Image>
+    private let imageFetcher: ImageFetcher = ImageFetcher()
+    private var permanentCacheCompletionManager = ImageControllerCompletionManager<ImageControllerPermanentCacheCompletion>()
+    private var dataCompletionManager = ImageControllerCompletionManager<ImageControllerDataCompletion>()
     
     @objc public required init(session: URLSession, cache: URLCache, fileManager: FileManager, permanentStorageDirectory: URL) {
         self.session = session
@@ -126,40 +126,40 @@ open class ImageController : NSObject {
     }
     
     
-    fileprivate func cacheKeyForURL(_ url: URL) -> String {
+    private func cacheKeyForURL(_ url: URL) -> String {
         guard let host = url.host, let imageName = WMFParseImageNameFromSourceURL(url) else {
             return url.absoluteString.precomposedStringWithCanonicalMapping
         }
         return (host + "__" + imageName).precomposedStringWithCanonicalMapping
     }
     
-    fileprivate func variantForURL(_ url: URL) -> Int64 { // A return value of 0 indicates the original size
+    private func variantForURL(_ url: URL) -> Int64 { // A return value of 0 indicates the original size
         let sizePrefix = WMFParseSizePrefixFromSourceURL(url)
         return Int64(sizePrefix == NSNotFound ? 0 : sizePrefix)
     }
     
-    fileprivate func identifierForURL(_ url: URL) -> String {
+    private func identifierForURL(_ url: URL) -> String {
         let key = cacheKeyForURL(url)
         let variant = variantForURL(url)
         return "\(key)__\(variant)".precomposedStringWithCanonicalMapping
     }
     
-    fileprivate func identifierForKey(_ key: String, variant: Int64) -> String {
+    private func identifierForKey(_ key: String, variant: Int64) -> String {
         return "\(key)__\(variant)".precomposedStringWithCanonicalMapping
     }
     
-//    fileprivate func legacyPermanentCacheFileURL(key: String, variant: Int64) -> URL {
+//    private func legacyPermanentCacheFileURL(key: String, variant: Int64) -> URL {
 //        let identifier = identifierForKey(key, variant: variant)
 //        return self.permanentStorageDirectory.appendingPathComponent(identifier, isDirectory: false)
 //    }
     
-    fileprivate func permanentCacheFileURL(key: String, variant: Int64) -> URL {
+    private func permanentCacheFileURL(key: String, variant: Int64) -> URL {
         let identifier = identifierForKey(key, variant: variant)
         let component = identifier.sha256 ?? identifier
         return self.permanentStorageDirectory.appendingPathComponent(component, isDirectory: false)
     }
     
-    fileprivate func fetchCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
+    private func fetchCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
         let itemRequest: NSFetchRequest<CacheItem> = CacheItem.fetchRequest()
         itemRequest.predicate = NSPredicate(format: "key == %@ && variant == %lli", key, variant)
         itemRequest.fetchLimit = 1
@@ -172,7 +172,7 @@ open class ImageController : NSObject {
         return nil
     }
     
-    fileprivate func fetchCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
+    private func fetchCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
         let groupRequest: NSFetchRequest<CacheGroup> = CacheGroup.fetchRequest()
         groupRequest.predicate = NSPredicate(format: "key == %@", key)
         groupRequest.fetchLimit = 1
@@ -185,7 +185,7 @@ open class ImageController : NSObject {
         return nil
     }
     
-    fileprivate func createCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
+    private func createCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
         guard let entity = NSEntityDescription.entity(forEntityName: "CacheItem", in: moc) else {
             return nil
         }
@@ -196,7 +196,7 @@ open class ImageController : NSObject {
         return item
     }
     
-    fileprivate func createCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
+    private func createCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
         guard let entity = NSEntityDescription.entity(forEntityName: "CacheGroup", in: moc) else {
             return nil
         }
@@ -205,16 +205,16 @@ open class ImageController : NSObject {
         return group
     }
     
-    fileprivate func fetchOrCreateCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
+    private func fetchOrCreateCacheItem(key: String, variant: Int64, moc: NSManagedObjectContext) -> CacheItem? {
         return fetchCacheItem(key: key, variant: variant, moc:moc) ?? createCacheItem(key: key, variant: variant, moc: moc)
     }
     
-    fileprivate func fetchOrCreateCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
+    private func fetchOrCreateCacheGroup(key: String, moc: NSManagedObjectContext) -> CacheGroup? {
         return fetchCacheGroup(key: key, moc: moc) ?? createCacheGroup(key: key, moc: moc)
     }
     
     
-    fileprivate func save(moc: NSManagedObjectContext) {
+    private func save(moc: NSManagedObjectContext) {
         guard moc.hasChanges else {
             return
         }
@@ -225,7 +225,7 @@ open class ImageController : NSObject {
         }
     }
     
-    fileprivate func updateCachedFileMimeTypeAtPath(_ path: String, toMIMEType MIMEType: String?) {
+    private func updateCachedFileMimeTypeAtPath(_ path: String, toMIMEType MIMEType: String?) {
         if let MIMEType = MIMEType {
             do {
                 try self.fileManager.wmf_setValue(MIMEType, forExtendedFileAttributeNamed: WMFExtendedFileAttributeNameMIMEType, forFileAtPath: path)
@@ -500,7 +500,7 @@ open class ImageController : NSObject {
         return sessionCachedImage(withURL: url) ?? permanentlyCachedImage(withURL: url)
     }
     
-    fileprivate func isCancellationError(_ error: Error?) -> Bool {
+    private func isCancellationError(_ error: Error?) -> Bool {
         return error?.isCancellationError ?? false
     }
     
@@ -518,7 +518,8 @@ open class ImageController : NSObject {
             }
             let schemedURL = (url as NSURL).wmf_urlByPrependingSchemeIfSchemeless() as URL
             //DDLogDebug("fetching: \(url) \(token)")
-            let task = self.session.dataTask(with: schemedURL) { (data, response, error) in
+            let request = self.imageFetcher.request(for: schemedURL, forceCache: true)
+            let task = self.session.dataTask(with: request) { (data, response, error) in
                 guard !self.isCancellationError(error) else {
                     //DDLogDebug("cancelled: \(url) \(token)")
                     return
@@ -595,84 +596,4 @@ open class ImageController : NSObject {
     @objc public func deleteTemporaryCache() {
         cache.removeAllCachedResponses()
     }
-    
-    // MARK: - Migration from SDWebImage
-    
-//    fileprivate var legacyCacheFolderURL: URL {
-//        get {
-//            return fileManager.wmf_containerURL().appendingPathComponent("Cache").appendingPathComponent("com.hackemist.SDWebImageCache.default")
-//        }
-//    }
-//
-//    @objc public func migrateLegacyImageURLs(_ imageURLs: [URL], intoGroup group: String, completion: @escaping () -> Void) {
-//        let legacyCacheFolderURL = self.legacyCacheFolderURL
-//        let legacyCacheFolderPath = legacyCacheFolderURL.path
-//        perform { (moc) in
-//            let group = self.fetchOrCreateCacheGroup(key: group, moc: moc)
-//            for imageURL in imageURLs {
-//                let key = self.cacheKeyForURL(imageURL)
-//                let variant = self.variantForURL(imageURL)
-//                if let existingItem = self.fetchCacheItem(key: key, variant: variant, moc: moc) {
-//                    group?.addToCacheItems(existingItem)
-//                    continue
-//                }
-//                guard let legacyKey = (imageURL as NSURL).wmf_schemelessURLString(),
-//                    let legacyPath = WMFLegacyImageCache.cachePath(forKey: legacyKey, inPath: legacyCacheFolderPath) else {
-//                        continue
-//                }
-//
-//                let fileURL = self.permanentCacheFileURL(key: key, variant: variant)
-//                let legacyFileURL = URL(fileURLWithPath: legacyPath, isDirectory: false)
-//                var createItem = false
-//                do {
-//                    try self.fileManager.moveItem(at: legacyFileURL, to: fileURL)
-//                    createItem = true
-//                } catch let error as NSError {
-//                    if error.domain == NSCocoaErrorDomain && error.code == NSFileWriteFileExistsError { // file exists
-//                        createItem = true
-//                    }
-//                } catch let error {
-//                    DDLogError("Error moving cached file: \(error)")
-//                }
-//
-//                if !createItem {
-//                    let legacyPermanentCacheURL = self.legacyPermanentCacheFileURL(key: key, variant: variant)
-//                    do {
-//                        try self.fileManager.moveItem(at: legacyPermanentCacheURL, to: fileURL)
-//                        createItem = true
-//                    } catch let error as NSError {
-//                        if error.domain == NSCocoaErrorDomain && error.code == NSFileWriteFileExistsError { // file exists
-//                            createItem = true
-//                        }
-//                    } catch let error {
-//                        DDLogError("Error moving cached file: \(error)")
-//                    }
-//                }
-//
-//                guard createItem else {
-//                    continue
-//                }
-//                if let item = self.fetchOrCreateCacheItem(key: key, variant: variant, moc: moc) {
-//                    group?.addToCacheItems(item)
-//                }
-//            }
-//            self.save(moc: moc)
-//            completion()
-//        }
-//    }
-//
-//    @objc public func removeLegacyCache() {
-//        do {
-//            try fileManager.removeItem(at: legacyCacheFolderURL)
-//        } catch let error as NSError {
-//            guard error.domain != NSCocoaErrorDomain || error.code != NSFileNoSuchFileError else {
-//                return
-//            }
-//            DDLogError("Error removing legacy cache \(error)")
-//        }
-//    }
-//
-//    public var temporaryCacheSize: Int64 {
-//        return FileManager.default.sizeOfDirectory(at: legacyCacheFolderURL) + Int64(cache.currentDiskUsage)
-//    }
 }

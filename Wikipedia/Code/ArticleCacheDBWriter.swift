@@ -186,12 +186,12 @@ extension ArticleCacheDBWriter {
     func migratedCacheItemFile(urlRequest: URLRequest, success: @escaping () -> Void, failure: @escaping (Error) -> Void) {
         
         guard let url = urlRequest.url,
-            let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+            let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                 failure(ArticleCacheDBWriterError.missingExpectedItemsOutOfRequestHeader)
                 return
         }
         
-        let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+        let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
         
         cacheBackgroundContext.perform {
             guard let item = CacheDBWriterHelper.fetchOrCreateCacheItem(with: url, itemKey: itemKey, variant: variant, in: self.cacheBackgroundContext) else {
@@ -260,12 +260,12 @@ private extension ArticleCacheDBWriter {
             for urlRequest in mustHaveURLRequests {
                 
                 guard let url = urlRequest.url,
-                    let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+                    let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                         completion(.failure(ImageCacheDBWriterError.missingExpectedItemsOutOfRequestHeader))
                         return
                 }
                 
-                let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+                let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
                 
                 guard let item = CacheDBWriterHelper.fetchOrCreateCacheItem(with: url, itemKey: itemKey, variant: variant, in: context) else {
                     completion(.failure(ArticleCacheDBWriterError.failureFetchOrCreateMustHaveCacheItem))
@@ -279,11 +279,11 @@ private extension ArticleCacheDBWriter {
             for urlRequest in niceToHaveURLRequests {
                 
                 guard let url = urlRequest.url,
-                        let itemKey = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] else {
+                        let itemKey = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemKey] else {
                         continue
                 }
                 
-                let variant = urlRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemVariant]
+                let variant = urlRequest.allHTTPHeaderFields?[Header.persistentCacheItemVariant]
                 
                 guard let item = CacheDBWriterHelper.fetchOrCreateCacheItem(with: url, itemKey: itemKey, variant: variant, in: context) else {
                     continue
