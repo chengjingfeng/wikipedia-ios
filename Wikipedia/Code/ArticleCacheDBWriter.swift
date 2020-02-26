@@ -17,19 +17,16 @@ final class ArticleCacheDBWriter: NSObject, CacheDBWriting {
     private let articleFetcher: ArticleFetcher
     private let fetcher: CacheFetching
     private let cacheBackgroundContext: NSManagedObjectContext
-    private let imageController: ImageCacheController
     private let imageInfoFetcher: MWKImageInfoFetcher
+    private let imageController = ImageController.shared
     
     var groupedTasks: [String : [IdentifiedTask]] = [:]
-    
-    
 
-    init(articleFetcher: ArticleFetcher, cacheBackgroundContext: NSManagedObjectContext, imageController: ImageCacheController, imageInfoFetcher: MWKImageInfoFetcher) {
+    init(articleFetcher: ArticleFetcher, cacheBackgroundContext: NSManagedObjectContext, imageInfoFetcher: MWKImageInfoFetcher) {
         
         self.articleFetcher = articleFetcher
         self.fetcher = articleFetcher
         self.cacheBackgroundContext = cacheBackgroundContext
-        self.imageController = imageController
         self.imageInfoFetcher = imageInfoFetcher
    }
     
@@ -108,10 +105,18 @@ final class ArticleCacheDBWriter: NSObject, CacheDBWriting {
                     imageInfoURLRequests.append(urlRequest)
                 }
                 
+                let imageURLsToDownload = imageURLs.filter { (url) -> Bool in
+                    
+                    let itemKey = self.imageController.cacheKeyForURL(url)
+                    let variant = self.imageController.variantForURL(url)
+                    
+                    return self.shouldDownloadImageVariant(itemKey: itemKey, variant: variant)
+                }
+                
                 //add image urls
-                self.imageController.add(urls: imageURLs, groupKey: groupKey, individualCompletion: { (result) in
+                self.imageController.permanentlyCacheInBackground(urls: imageURLsToDownload, groupKey: groupKey, failure: { (error) in
                     //tonitodo: don't think we need this. if not make it optional
-                }) { (result) in
+                }) {
                     //tonitodo: don't think we need this. if not make it optional
                 }
                 
@@ -205,6 +210,58 @@ extension ArticleCacheDBWriter {
                 failure(error)
             }
         }
+    }
+    
+    func shouldDownloadImageVariant(itemKey: CacheController.ItemKey, variant: String?) -> Bool {
+        
+        guard let variant = variant else {
+            return true
+        }
+        
+        let context = self.cacheBackgroundContext
+
+        var result: Bool = false
+        context.performAndWait {
+
+            var allVariantItems = CacheDBWriterHelper.allVariantItems(itemKey: itemKey, in: context)
+
+            allVariantItems.sort { (lhs, rhs) -> Bool in
+
+                guard let lhsVariant = lhs.variant,
+                    let lhsSize = Int64(lhsVariant),
+                    let rhsVariant = rhs.variant,
+                    let rhsSize = Int64(rhsVariant) else {
+                        return true
+                }
+
+                return lhsSize < rhsSize
+            }
+
+            switch (UIScreen.main.scale, allVariantItems.count) {
+            case (1.0, _), (_, 1):
+                guard let firstVariant = allVariantItems.first?.variant else {
+                    result = true
+                    return
+                }
+                result = variant == firstVariant
+            case (2.0, _):
+                guard let secondVariant = allVariantItems[safeIndex: 1]?.variant else {
+                    result = true
+                    return
+                }
+                result = variant == secondVariant
+            case (3.0, _):
+                guard let lastVariant = allVariantItems.last?.variant else {
+                    result = true
+                    return
+                }
+                result = variant == lastVariant
+            default:
+                result = false
+            }
+        }
+
+        return result
     }
     
     func migratedCacheItemFile(urlRequest: URLRequest, success: @escaping () -> Void, failure: @escaping (Error) -> Void) {

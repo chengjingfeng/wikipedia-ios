@@ -71,7 +71,6 @@ typedef NS_OPTIONS(NSUInteger, RemoteConfigOption) {
 
 #pragma mark - Caching
 
-@property (readonly, strong, nonatomic) WMFCacheControllerWrapper *imageCacheControllerWrapper;
 @property (readonly, strong, nonatomic) WMFCacheControllerWrapper *articleCacheControllerWrapper;
 
 @property (readonly, strong, nonatomic) MobileviewToMobileHTMLConverter *mobileviewConverter;
@@ -125,7 +124,7 @@ typedef NS_OPTIONS(NSUInteger, RemoteConfigOption) {
 
 - (NSError *)removeFolderAtBasePath;
 
-// instantiates internal articleCacheController and imageCacheController. Needs to occur after library migration is complete.
+// instantiates internal articleCacheController. Needs to occur after library migration is complete.
 - (void)setupCacheControllers;
 
 @end

@@ -1,11 +1,10 @@
 
 import Foundation
 
-//DEBT: Wrapper class for accessing CacheControllers from MWKDataStore. Remove once MWKDataStore is no longer Objective-C and reference ArticleCacheController and ImageCacheController directly.
+//DEBT: Wrapper class for accessing CacheControllers from MWKDataStore. Remove once MWKDataStore is no longer Objective-C and reference ArticleCacheController directly.
 
 @objc(WMFCacheControllerType)
 enum CacheControllerType: Int {
-    case image
     case article
 }
 
@@ -22,33 +21,6 @@ public final class CacheControllerWrapper: NSObject {
     
     @objc init?(type: CacheControllerType) {
 
-        super.init()
-        switch type {
-        case .image:
-            
-            let imageFetcher = ImageFetcher()
-            
-            guard let cacheBackgroundContext = CacheController.backgroundCacheContext,
-                let imageFileWriter = CacheFileWriter(fetcher: imageFetcher, cacheBackgroundContext: cacheBackgroundContext, cacheKeyGenerator: ImageCacheKeyGenerator.self) else {
-                    return
-            }
-
-            let imageDBWriter = ImageCacheDBWriter(imageFetcher: imageFetcher, cacheBackgroundContext: cacheBackgroundContext)
-
-            self.cacheController = ImageCacheController(dbWriter: imageDBWriter, fileWriter: imageFileWriter)
-        case .article:
-            assertionFailure("Must init from initArticleCacheWithImageCacheControllerWrapper for this type.")
-            return nil
-        }
-    }
-    
-    @objc init?(articleCacheWithImageCacheControllerWrapper imageCacheWrapper: CacheControllerWrapper) {
-        
-        guard let imageCacheController = imageCacheWrapper.cacheController as? ImageCacheController else {
-            assertionFailure("Expecting imageCacheWrapper.cacheController to be of type ImageCacheController")
-            return nil
-        }
-        
         let articleFetcher = ArticleFetcher()
         let imageInfoFetcher = MWKImageInfoFetcher()
         
@@ -57,10 +29,8 @@ public final class CacheControllerWrapper: NSObject {
             return nil
         }
         
-        let articleDBWriter = ArticleCacheDBWriter(articleFetcher: articleFetcher, cacheBackgroundContext: cacheBackgroundContext, imageController: imageCacheController, imageInfoFetcher: imageInfoFetcher)
+        let articleDBWriter = ArticleCacheDBWriter(articleFetcher: articleFetcher, cacheBackgroundContext: cacheBackgroundContext, imageInfoFetcher: imageInfoFetcher)
         
         self.cacheController = ArticleCacheController(dbWriter: articleDBWriter, fileWriter: cacheFileWriter)
-        
-        super.init()
     }
 }

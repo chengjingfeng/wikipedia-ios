@@ -34,7 +34,6 @@ NSString *MWKCreateImageURLWithPath(NSString *path) {
 @property (nonatomic, strong) RemoteNotificationsController *remoteNotificationsController;
 @property (nonatomic, strong) WMFArticleSummaryController *articleSummaryController;
 
-@property (nonatomic, strong) WMFCacheControllerWrapper *imageCacheControllerWrapper;
 @property (nonatomic, strong) WMFCacheControllerWrapper *articleCacheControllerWrapper;
 
 @property (nonatomic, strong) MobileviewToMobileHTMLConverter *mobileviewConverter;
@@ -664,8 +663,7 @@ static uint64_t bundleHash() {
 }
 
 - (void)setupCacheControllers {
-    self.imageCacheControllerWrapper = [[WMFCacheControllerWrapper alloc] initWithType:WMFCacheControllerTypeImage];
-    self.articleCacheControllerWrapper = [[WMFCacheControllerWrapper alloc] initWithArticleCacheWithImageCacheControllerWrapper:self.imageCacheControllerWrapper];
+    self.articleCacheControllerWrapper = [[WMFCacheControllerWrapper alloc] initWithType:WMFCacheControllerTypeArticle];
 }
 
 #pragma mark - Memory

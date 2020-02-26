@@ -19,6 +19,7 @@ final class SchemeHandler: NSObject {
     private var activeSchemeTasks = NSMutableSet(array: [])
     
     private let cacheQueue: OperationQueue = OperationQueue()
+    private let imageController = ImageController.shared
     
     @objc public static let shared = SchemeHandler(scheme: "app", session: Session.shared)
     
@@ -122,17 +123,16 @@ private extension SchemeHandler {
         guard mutableRequest.allHTTPHeaderFields?[Session.Header.persistentCacheItemKey] == nil else {
             return maybeRequest
         }
-
-        let headerProvider: CacheHeaderProviding
-        if isMimeTypeImage(type: (newURL as NSURL).wmf_mimeTypeForExtension()) {
-            headerProvider = ImageCacheHeaderProvider()
-        } else {
-            headerProvider = ArticleCacheHeaderProvider()
-        }
         
         if var request = maybeRequest {
             
-            let header = headerProvider.requestHeader(urlRequest: request)
+            let header: [String: String]
+            if isMimeTypeImage(type: (newURL as NSURL).wmf_mimeTypeForExtension()) {
+                header = imageController.requestHeader(urlRequest: request)
+            } else {
+                let headerProvider = ArticleCacheHeaderProvider()
+                header = headerProvider.requestHeader(urlRequest: request)
+            }
             
             for (key, value) in header {
                 request.setValue(value, forHTTPHeaderField: key)

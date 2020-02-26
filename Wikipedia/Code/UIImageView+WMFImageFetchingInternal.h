@@ -3,7 +3,6 @@
 @class MWKImage;
 @class WMFImageController;
 @class WMFFaceDetectionCache;
-@class FLAnimatedImage;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -62,17 +61,6 @@ NS_ASSUME_NONNULL_BEGIN
  *  @see wmf_imageURLToFetch
  */
 - (void)wmf_cancelImageDownload;
-
-/**
- *  Use to detect faces if you have already fetched image data by other means.
- */
-- (void)wmf_setImage:(UIImage *)image
-animatedImage:(nullable FLAnimatedImage *)animatedImage
-  detectFaces:(BOOL)detectFaces
-        onGPU:(BOOL)onGPU
-     animated:(BOOL)animated
-      failure:(WMFErrorHandler)failure
-             success:(WMFSuccessHandler)success;
 
 @end
 

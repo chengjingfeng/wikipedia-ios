@@ -35,12 +35,10 @@ class ArticleViewController: ViewController {
     internal let dataStore: MWKDataStore
     
     private let authManager: WMFAuthenticationManager = WMFAuthenticationManager.sharedInstance
-    private let cacheController: CacheController
     
     private lazy var languageLinkFetcher: MWKLanguageLinkFetcher = MWKLanguageLinkFetcher()
 
     internal lazy var fetcher: ArticleFetcher = ArticleFetcher()
-    internal lazy var imageFetcher: ImageFetcher = ImageFetcher()
 
     private var leadImageHeight: CGFloat = 210
 
@@ -56,9 +54,7 @@ class ArticleViewController: ViewController {
     
     @objc init?(articleURL: URL, dataStore: MWKDataStore, theme: Theme, forceCache: Bool = false) {
         guard
-            let article = dataStore.fetchOrCreateArticle(with: articleURL),
-            let cacheController = dataStore.articleCacheControllerWrapper.cacheController
-            else {
+            let article = dataStore.fetchOrCreateArticle(with: articleURL) else {
                 return nil
         }
         
@@ -71,8 +67,6 @@ class ArticleViewController: ViewController {
         self.schemeHandler = SchemeHandler.shared
         
         self.forceCache = forceCache
-
-        self.cacheController = cacheController
         
         super.init(theme: theme)
     }
@@ -122,29 +116,11 @@ class ArticleViewController: ViewController {
     func loadLeadImage(with leadImageURL: URL) {
         leadImageHeightConstraint.constant = leadImageHeight
         
-        let leadImageRequest = imageFetcher.request(for: leadImageURL, forceCache: forceCache)
-        imageFetcher.data(for: leadImageRequest) { [weak self] (result) in
-            
-            switch result {
-            case .success(let data):
-                
-                if let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        self?.leadImageView.wmf_setImage(with: image, imageURL: leadImageURL, detectFaces: true, onGPU: true, failure: { (error) in
-                            DDLogError("Error loading lead image: \(error)")
-                        }, success: {
-                            self?.updateLeadImageMargins()
-                            self?.updateArticleMargins()
-                        })
-                    }
-                } else {
-                    DDLogError("Unable to pull lead image out of data.")
-                }
-                    
-            case .failure(let error):
-                DDLogError("Error loading lead image: \(error)")
-            }
-            
+        leadImageView.wmf_setImage(with: leadImageURL, detectFaces: true, onGPU: true, failure: { (error) in
+            DDLogError("Error loading lead image: \(error)")
+        }) {
+            self.updateLeadImageMargins()
+            self.updateArticleMargins()
         }
     }
     

@@ -33,7 +33,7 @@ open class ImageController : NSObject {
     // MARK: - Initialization
     
     @objc(sharedInstance) public static let shared: ImageController = {
-        let session = Session.urlSession
+        let session = Session.shared
         let cache = URLCache.shared
         let fileManager = FileManager.default
         var permanentStorageDirectory = fileManager.wmf_containerURL().appendingPathComponent("Permanent Cache", isDirectory: true)
@@ -53,7 +53,7 @@ open class ImageController : NSObject {
         return ImageController(session: session, cache: cache, fileManager: fileManager, permanentStorageDirectory: permanentStorageDirectory)
     }()
     
-    fileprivate let session: URLSession
+    fileprivate let session: Session
     fileprivate let cache: URLCache
     fileprivate let permanentStorageDirectory: URL
     let managedObjectContext: NSManagedObjectContext
@@ -64,7 +64,7 @@ open class ImageController : NSObject {
     fileprivate var permanentCacheCompletionManager = ImageControllerCompletionManager<ImageControllerPermanentCacheCompletion>()
     fileprivate var dataCompletionManager = ImageControllerCompletionManager<ImageControllerDataCompletion>()
     
-    @objc public required init(session: URLSession, cache: URLCache, fileManager: FileManager, permanentStorageDirectory: URL) {
+    @objc public required init(session: Session, cache: URLCache, fileManager: FileManager, permanentStorageDirectory: URL) {
         self.session = session
         self.cache = cache
         self.fileManager = fileManager
@@ -405,7 +405,8 @@ open class ImageController : NSObject {
             }
             let schemedURL = (url as NSURL).wmf_urlByPrependingSchemeIfSchemeless() as URL
             //DDLogDebug("fetching: \(url) \(token)")
-            let task = self.session.dataTask(with: schemedURL) { (data, response, error) in
+            let urlRequest = self.request(for: schemedURL)
+            let task = self.session.dataTask(with: urlRequest) { (data, response, error) in
                 guard !self.isCancellationError(error) else {
                     //DDLogDebug("cancelled: \(url) \(token)")
                     return
@@ -419,9 +420,13 @@ open class ImageController : NSObject {
                     completion.success(data, response)
                 })
             }
-            task.priority = priority
-            self.dataCompletionManager.add(task, forIdentifier: identifier)
-            task.resume()
+            
+            if let task = task {
+                task.priority = priority
+                self.dataCompletionManager.add(task, forIdentifier: identifier)
+                task.resume()
+            }
+            
         }
         return token
     }
@@ -482,12 +487,47 @@ open class ImageController : NSObject {
         let _ =  fetchImage(withURL: url, priority: URLSessionTask.lowPriority, failure: { (error) in }) { (download) in }
     }
     
+    fileprivate func request(for url: URL, forceCache: Bool = false) -> URLRequest {
+
+        var request = URLRequest(url: url)
+        let header = requestHeader(urlRequest: request)
+        
+        for (key, value) in header {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        if forceCache {
+            request.cachePolicy = .returnCacheDataElseLoad
+        }
+        
+        return request
+    }
+    
+    public func requestHeader(urlRequest: URLRequest) -> [String: String] {
+        var header: [String: String] = [:]
+        
+        guard let url = urlRequest.url else {
+            return header
+        }
+        
+        let itemKey = cacheKeyForURL(url)
+        header[Session.Header.persistentCacheItemKey] = itemKey
+        
+        if let variant = variantForURL(url) {
+            header[Session.Header.persistentCacheItemVariant] = variant
+        }
+        
+        header[Session.Header.persistentCacheItemType] = Session.Header.ItemType.image.rawValue
+        
+        return header
+    }
+    
     // MARK: Identifiers
     
     /// Unique identifier for a given image URL. All thumbnails and alternative sizes of images should have the same cacheKey.
     /// - Parameter url: An image URL from a Wikimedia project
     /// - Returns: A string to use as the key for this URL
-    fileprivate func cacheKeyForURL(_ url: URL) -> String {
+    public func cacheKeyForURL(_ url: URL) -> String {
         guard let host = url.host, let imageName = WMFParseImageNameFromSourceURL(url) else {
             return url.absoluteString.precomposedStringWithCanonicalMapping
         }
@@ -497,7 +537,7 @@ open class ImageController : NSObject {
     /// Size variant for a given image URL.
     /// - Parameter url: An image URL from a Wikimedia project
     /// - Returns: The width of the image in pixles or 0 if it's the original URL
-    fileprivate func variantForURL(_ url: URL) -> String? {
+    public func variantForURL(_ url: URL) -> String? {
         let sizePrefix = WMFParseSizePrefixFromSourceURL(url)
         let intVariant = Int64(sizePrefix == NSNotFound ? 0 : sizePrefix)
         return intVariant < 1 ? nil : String(intVariant)
@@ -672,10 +712,6 @@ open class ImageController : NSObject {
     @objc public static func temporaryController() -> ImageController {
         let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
         let imageControllerDirectory = temporaryDirectory.appendingPathComponent("ImageController-" + UUID().uuidString)
-        let config = Session.defaultConfiguration
-        let cache = URLCache(memoryCapacity: 1000000000, diskCapacity: 1000000000, diskPath: imageControllerDirectory.path)
-        config.urlCache = cache
-        let session = URLSession(configuration: config)
         let fileManager = FileManager.default
         let permanentStorageDirectory = imageControllerDirectory.appendingPathComponent("Permanent Cache", isDirectory: true)
         do {
@@ -683,7 +719,7 @@ open class ImageController : NSObject {
         } catch let error {
             DDLogError("Error creating permanent cache: \(error)")
         }
-        return ImageController(session: session, cache: cache, fileManager: fileManager, permanentStorageDirectory: permanentStorageDirectory)
+        return ImageController(session: Session.shared, cache: URLCache.shared, fileManager: fileManager, permanentStorageDirectory: permanentStorageDirectory)
     }
     
 }
