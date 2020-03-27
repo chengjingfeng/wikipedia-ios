@@ -47,6 +47,16 @@
                ReferencedContainer = "container:Wikipedia.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "83B53900242D0BEB00DA6B1D"
+               BuildableName = "PageContentServiceTests.xctest"
+               BlueprintName = "PageContentServiceTests"
+               ReferencedContainer = "container:Wikipedia.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -303,10 +303,6 @@ class ArticleViewController: ViewController {
     }
     
     func loadPage(cachePolicy: WMFCachePolicy? = nil) {
-        defer {
-            callLoadCompletionIfNecessary()
-        }
-        
         guard var request = try? fetcher.mobileHTMLRequest(articleURL: articleURL, scheme: schemeHandler.scheme, cachePolicy: cachePolicy) else {
 
             showGenericError()
@@ -318,6 +314,7 @@ class ArticleViewController: ViewController {
         footerLoadGroup?.enter() // will leave on setup complete
         footerLoadGroup?.notify(queue: DispatchQueue.main) { [weak self] in
             self?.setupFooter()
+            self?.callLoadCompletionIfNecessary()
             self?.shareIfNecessary()
             self?.footerLoadGroup = nil
         }
