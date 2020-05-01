@@ -45,19 +45,17 @@ class ArticleViewController: ViewController, HintPresenting {
     internal lazy var imageFetcher: ImageFetcher = ImageFetcher(session: session, configuration: configuration)
 
     lazy var surveyAnnouncementResult: SurveyAnnouncementsController.SurveyAnnouncementResult? = {
-        return SurveyAnnouncementsController.mockResult
-        // TODO: - Remove above and uncomment this
-        /*
         guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
             let siteURL = articleURL.wmf_site else {
                 return nil
         }
 
         return SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
-         */
     }()
     var surveyAnnouncementTimer: Timer?
     var surveyAnnouncementTimerTimeIntervalRemainingWhenBackgrounded: TimeInterval?
+    var shouldPauseSurveyTimerOnBackground = false
+    var shouldResumeSurveyTimerOnForeground: Bool { return shouldPauseSurveyTimerOnBackground }
 
     private var leadImageHeight: CGFloat = 210
 
@@ -282,8 +280,15 @@ class ArticleViewController: ViewController, HintPresenting {
         toolbarController.update()
         loadIfNecessary()
         startSignificantlyViewedTimer()
+        
+        //if user pushes on to next screen on stack, then goes back, restart timer from 0 if survey has not been seen yet.
         if state == .loaded {
-            startSurveyAnnouncementTimer()
+            //recalculate, if survey was seen already on another page this will flip surveyAnnouncementResult to nil
+            calculateSurveyAnnouncementResult()
+            if surveyAnnouncementResult != nil {
+                shouldPauseSurveyTimerOnBackground = true
+                startSurveyAnnouncementTimer()
+            }
         }
     }
     
@@ -312,7 +317,23 @@ class ArticleViewController: ViewController, HintPresenting {
         cancelWIconPopoverDisplay()
         saveArticleScrollPosition()
         stopSignificantlyViewedTimer()
-        stopSurveyAnnouncementTimer()
+        
+        if state == .loaded && surveyAnnouncementResult != nil {
+            //do not listen for background/foreground notifications to pause and resume survey if this article is not on screen anymore
+            shouldPauseSurveyTimerOnBackground = false
+            stopSurveyAnnouncementTimer()
+        }
+    }
+    
+    //MARK: Survey Announcement
+    
+    func calculateSurveyAnnouncementResult() {
+        guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
+            let siteURL = articleURL.wmf_site else {
+                return
+        }
+
+        self.surveyAnnouncementResult = SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
     }
     
     // MARK: Article load
@@ -816,12 +837,15 @@ private extension ArticleViewController {
     @objc func applicationWillResignActive(_ notification: Notification) {
         saveArticleScrollPosition()
         stopSignificantlyViewedTimer()
-        pauseSurveyAnnouncementTimer()
+        if shouldPauseSurveyTimerOnBackground {
+            pauseSurveyAnnouncementTimer()
+        }
     }
     
     @objc func applicationDidBecomeActive(_ notification: Notification) {
         startSignificantlyViewedTimer()
-        if state == .loaded {
+        if state == .loaded,
+            shouldResumeSurveyTimerOnForeground {
             resumeSurveyAnnouncementTimer()
         }
     }

@@ -7,6 +7,8 @@ extension ArticleViewController {
         guard let surveyAnnouncementResult = surveyAnnouncementResult else {
             return
         }
+        
+        shouldPauseSurveyTimerOnBackground = true
 
         let timeInterval = customTimeInterval ?? surveyAnnouncementResult.displayDelay
 		surveyAnnouncementTimer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: false, block: { [weak self] (timer) in
@@ -18,6 +20,7 @@ extension ArticleViewController {
             self.showSurveyAnnouncementPanel(surveyAnnouncementResult: surveyAnnouncementResult)
             
             self.stopSurveyAnnouncementTimer()
+            self.shouldPauseSurveyTimerOnBackground = false
         })
     }
     
@@ -54,7 +57,8 @@ extension ArticleViewController {
     }
 
     func pauseSurveyAnnouncementTimer() {
-        guard surveyAnnouncementTimer != nil else {
+        guard surveyAnnouncementTimer != nil,
+        shouldPauseSurveyTimerOnBackground else {
             return
         }
 
@@ -63,7 +67,8 @@ extension ArticleViewController {
     }
 
 	func resumeSurveyAnnouncementTimer() {
-		guard surveyAnnouncementTimer == nil else {
+		guard surveyAnnouncementTimer == nil,
+        shouldResumeSurveyTimerOnForeground else {
 			return
 		}
 
