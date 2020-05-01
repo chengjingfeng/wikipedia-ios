@@ -51,7 +51,6 @@ extension ArticleViewController: ArticleWebMessageHandling {
         webView.becomeFirstResponder()
         showWIconPopoverIfNecessary()
         refreshControl.endRefreshing()
-        calculateSurveyAnnouncementResult()
         startSurveyAnnouncementTimer()
     }
     

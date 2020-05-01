@@ -44,14 +44,16 @@ class ArticleViewController: ViewController, HintPresenting {
     internal lazy var fetcher: ArticleFetcher = ArticleFetcher(session: session, configuration: configuration)
     internal lazy var imageFetcher: ImageFetcher = ImageFetcher(session: session, configuration: configuration)
 
-    lazy var surveyAnnouncementResult: SurveyAnnouncementsController.SurveyAnnouncementResult? = {
-        guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
-            let siteURL = articleURL.wmf_site else {
-                return nil
-        }
+    var surveyAnnouncementResult: SurveyAnnouncementsController.SurveyAnnouncementResult? {
+        get {
+            guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
+                let siteURL = articleURL.wmf_site else {
+                    return nil
+            }
 
-        return SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
-    }()
+            return SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
+        }
+    }
     var surveyAnnouncementTimer: Timer?
     var surveyAnnouncementTimerTimeIntervalRemainingWhenBackgrounded: TimeInterval?
     var shouldPauseSurveyTimerOnBackground = false
@@ -283,8 +285,6 @@ class ArticleViewController: ViewController, HintPresenting {
         
         //if user pushes on to next screen on stack, then goes back, restart timer from 0 if survey has not been seen yet.
         if state == .loaded {
-            //recalculate, if survey was seen already on another page this will flip surveyAnnouncementResult to nil
-            calculateSurveyAnnouncementResult()
             if surveyAnnouncementResult != nil {
                 shouldPauseSurveyTimerOnBackground = true
                 startSurveyAnnouncementTimer()
@@ -323,17 +323,6 @@ class ArticleViewController: ViewController, HintPresenting {
             shouldPauseSurveyTimerOnBackground = false
             stopSurveyAnnouncementTimer()
         }
-    }
-    
-    //MARK: Survey Announcement
-    
-    func calculateSurveyAnnouncementResult() {
-        guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
-            let siteURL = articleURL.wmf_site else {
-                return
-        }
-
-        self.surveyAnnouncementResult = SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
     }
     
     // MARK: Article load
