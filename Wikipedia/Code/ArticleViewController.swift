@@ -44,20 +44,7 @@ class ArticleViewController: ViewController, HintPresenting {
     internal lazy var fetcher: ArticleFetcher = ArticleFetcher(session: session, configuration: configuration)
     internal lazy var imageFetcher: ImageFetcher = ImageFetcher(session: session, configuration: configuration)
 
-    var surveyAnnouncementResult: SurveyAnnouncementsController.SurveyAnnouncementResult? {
-        get {
-            guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
-                let siteURL = articleURL.wmf_site else {
-                    return nil
-            }
-
-            return SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
-        }
-    }
-    var surveyAnnouncementTimer: Timer?
-    var surveyAnnouncementTimerTimeIntervalRemainingWhenBackgrounded: TimeInterval?
-    var shouldPauseSurveyTimerOnBackground = false
-    var shouldResumeSurveyTimerOnForeground: Bool { return shouldPauseSurveyTimerOnBackground }
+    let surveyTimerController: ArticleSurveyTimerController
 
     private var leadImageHeight: CGFloat = 210
 
@@ -89,6 +76,8 @@ class ArticleViewController: ViewController, HintPresenting {
         self.schemeHandler = SchemeHandler.shared
 
         self.cacheController = cacheController
+        
+        self.surveyTimerController = ArticleSurveyTimerController(articleURL: articleURL, surveyController: SurveyAnnouncementsController.shared)
         
         super.init(theme: theme)
     }
@@ -243,7 +232,7 @@ class ArticleViewController: ViewController, HintPresenting {
     
     // MARK: Loading
     
-    internal var state: ViewState = .initial {
+    var state: ViewState = .initial {
         didSet {
             switch state {
             case .initial:
@@ -274,6 +263,9 @@ class ArticleViewController: ViewController, HintPresenting {
         setupToolbar() // setup toolbar needs to be after super.viewDidLoad because the superview owns the toolbar
         apply(theme: theme)
         setupForStateRestorationIfNecessary()
+        
+        surveyTimerController.timerFireBlock = { [weak self] (result) in self?.showSurveyAnnouncementPanel(surveyAnnouncementResult: result)
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -283,13 +275,7 @@ class ArticleViewController: ViewController, HintPresenting {
         loadIfNecessary()
         startSignificantlyViewedTimer()
         
-        //if user pushes on to next screen on stack, then goes back, restart timer from 0 if survey has not been seen yet.
-        if state == .loaded {
-            if surveyAnnouncementResult != nil {
-                shouldPauseSurveyTimerOnBackground = true
-                startSurveyAnnouncementTimer()
-            }
-        }
+        surveyTimerController.viewWillAppear(withState: state)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -318,11 +304,7 @@ class ArticleViewController: ViewController, HintPresenting {
         saveArticleScrollPosition()
         stopSignificantlyViewedTimer()
         
-        if state == .loaded && surveyAnnouncementResult != nil {
-            //do not listen for background/foreground notifications to pause and resume survey if this article is not on screen anymore
-            shouldPauseSurveyTimerOnBackground = false
-            stopSurveyAnnouncementTimer()
-        }
+        surveyTimerController.viewWillAppear(withState: state)
     }
     
     // MARK: Article load
@@ -826,17 +808,12 @@ private extension ArticleViewController {
     @objc func applicationWillResignActive(_ notification: Notification) {
         saveArticleScrollPosition()
         stopSignificantlyViewedTimer()
-        if shouldPauseSurveyTimerOnBackground {
-            pauseSurveyAnnouncementTimer()
-        }
+        surveyTimerController.willResignActive(withState: state)
     }
     
     @objc func applicationDidBecomeActive(_ notification: Notification) {
         startSignificantlyViewedTimer()
-        if state == .loaded,
-            shouldResumeSurveyTimerOnForeground {
-            resumeSurveyAnnouncementTimer()
-        }
+        surveyTimerController.didBecomeActive(withState: state)
     }
     
     func setupSearchButton() {
