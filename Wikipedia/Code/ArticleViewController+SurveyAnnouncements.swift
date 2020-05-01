@@ -2,7 +2,7 @@ import Foundation
 
 extension ArticleViewController {
     
-	func startSurveyAnnouncementTimer(withTimeInterval customTimeInterval: TimeInterval? = nil) {
+    func startSurveyAnnouncementTimer(withTimeInterval customTimeInterval: TimeInterval? = nil) {
         
         guard let surveyAnnouncementResult = surveyAnnouncementResult else {
             return
