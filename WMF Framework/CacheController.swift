@@ -10,14 +10,16 @@ public enum CacheControllerError: Error {
 
 public class CacheController {
     
-    //set for testing
+	#if TEST
     public static var temporaryCacheURL: URL? = nil
+	#endif
     
     static let cacheURL: URL = {
-        
+		#if TEST
         if let temporaryCacheURL = temporaryCacheURL {
             return temporaryCacheURL
         }
+		#endif
         
         var url = FileManager.default.wmf_containerURL().appendingPathComponent("Permanent Cache", isDirectory: true)
         
