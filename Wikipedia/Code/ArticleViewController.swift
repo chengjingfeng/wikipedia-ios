@@ -43,16 +43,21 @@ class ArticleViewController: ViewController, HintPresenting {
     
     internal lazy var fetcher: ArticleFetcher = ArticleFetcher(session: session, configuration: configuration)
     internal lazy var imageFetcher: ImageFetcher = ImageFetcher(session: session, configuration: configuration)
-    
+
     lazy var surveyAnnouncementResult: SurveyAnnouncementsController.SurveyAnnouncementResult? = {
+        return SurveyAnnouncementsController.mockResult
+        // TODO: - Remove above and uncomment this
+        /*
         guard let articleTitle = articleURL.wmf_title?.denormalizedPageTitle,
             let siteURL = articleURL.wmf_site else {
                 return nil
         }
-        
+
         return SurveyAnnouncementsController.shared.activeSurveyAnnouncementResultForTitle(articleTitle, siteURL: siteURL)
+         */
     }()
     var surveyAnnouncementTimer: Timer?
+    var surveyAnnouncementTimerTimeIntervalRemainingWhenBackgrounded: TimeInterval?
 
     private var leadImageHeight: CGFloat = 210
 
@@ -277,6 +282,9 @@ class ArticleViewController: ViewController, HintPresenting {
         toolbarController.update()
         loadIfNecessary()
         startSignificantlyViewedTimer()
+        if state == .loaded {
+            startSurveyAnnouncementTimer()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -808,10 +816,14 @@ private extension ArticleViewController {
     @objc func applicationWillResignActive(_ notification: Notification) {
         saveArticleScrollPosition()
         stopSignificantlyViewedTimer()
+        pauseSurveyAnnouncementTimer()
     }
     
     @objc func applicationDidBecomeActive(_ notification: Notification) {
         startSignificantlyViewedTimer()
+        if state == .loaded {
+            resumeSurveyAnnouncementTimer()
+        }
     }
     
     func setupSearchButton() {

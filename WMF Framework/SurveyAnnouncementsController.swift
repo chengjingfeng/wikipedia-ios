@@ -18,6 +18,14 @@ public final class SurveyAnnouncementsController: NSObject {
         public let actionURL: URL
         public let displayDelay: TimeInterval
     }
+
+    // TODO: - Remove this
+    public static var mockResult = SurveyAnnouncementsController.SurveyAnnouncementResult(
+        campaignIdentifier: "",
+        announcement: WMFAnnouncement(),
+        actionURL: URL(string: "wikipedia.org")!,
+        displayDelay: 5
+    )
     
     @objc public func setAnnouncements(_ announcements: [WMFAnnouncement], forSiteURL siteURL: URL) {
         
